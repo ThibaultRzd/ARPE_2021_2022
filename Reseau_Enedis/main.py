@@ -3,7 +3,7 @@ from pandapower.control.controller.const_control import ConstControl
 from pandapower.timeseries.output_writer import OutputWriter
 from pandapower.timeseries.run_time_series import run_timeseries
 from Calcul import create_troyes_net, create_data_source
-
+from pandapower.timeseries.data_sources.frame_data import DFData
 
 
 def main():
@@ -14,7 +14,9 @@ def main():
     l_pv_gen = []
     l_ev = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
-    ds = create_data_source(scenario)
+    df = create_data_source(scenario)
+    ds = DFData(df)
+
     #ds['Load_EV'] = 2 * ds['Load_EV']
     list_name = []
     for i in range(26):
@@ -24,7 +26,7 @@ def main():
 
     net = create_troyes_net(l_pv_gen, l_ev)
     ###
-    print()
+
     ###
     ConstControl(net, "sgen", "p_mw", element_index=net.sgen.index, profile_name=["sgenp"] * len(l_pv_gen),
                  data_source=ds)

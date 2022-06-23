@@ -44,6 +44,7 @@ def check_lin(lamb):
         run_timeseries(net, time_steps=np.arange(0, 335))
 
         df_result_percent = pd.read_csv("results/res_line/loading_percent.csv", sep=';', encoding='latin-1')
+        df_result_percent = df_result_percent.drop(['Unnamed: 0'], axis=1)
         l_ret.append(df_result_percent)
 
     tab_1, tab_2, tab_3 = [i.to_numpy() for i in l_ret]
@@ -53,22 +54,53 @@ def check_lin(lamb):
     return erreur
 
 
-lambs = np.linspace(0, 6, 20)
-ords = np.zeros_like(lambs)
-for i, lamb in enumerate(lambs):
-    ords[i] = check_lin(lamb)
+def run_reseau(profil):
+    scenario = 'grid'
 
+    l_pv_gen = []
+    l_ev = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    l_ret = []
+    df = create_data_source(scenario, profil)
+    ds = DFData(df)
+    list_name = []
+    for i in range(26):
+        list_name.append("loadp_%s" % i)
+    for i in range(len(l_ev)):
+        list_name.append("Load_EV")
 
-plt.plot(lambs, ords)
-plt.show()
+    net = create_troyes_net(l_pv_gen, l_ev)
+    ###
+    print()
+    ###
+    ConstControl(net, "sgen", "p_mw", element_index=net.sgen.index, profile_name=["sgenp"] * len(l_pv_gen),
+                 data_source=ds)
+    ConstControl(net, "load", "p_mw", element_index=net.load.index, profile_name=list_name, data_source=ds)
 
-def create_dataset(n, shape_entree=(35, 335), val_split_ratio=.1):
+    # Partie sauvegarde des données au format csv
+    ow = OutputWriter(net, time_steps=np.arange(0, 335), output_path="./results/", output_file_type=".csv")
+    ow.log_variable("res_bus", "vm_pu")
+    ow.log_variable("res_line", "loading_percent")
+
+    run_timeseries(net, time_steps=np.arange(0, 335))
+
+    df_result_percent = pd.read_csv("results/res_line/loading_percent.csv", sep=';', encoding='latin-1')
+    return(df_result_percent)
+
+#lambs = np.linspace(0, 6, 20)
+#ords = np.zeros_like(lambs)
+#for i, lamb in enumerate(lambs):
+#    ords[i] = check_lin(lamb)
+#plt.plot(lambs, ords)
+#plt.show()
+
+def create_dataset(n, shape_entree=(35, 336
+                                    ), val_split_ratio=.1):
     entrees = torch.zeros((n, *shape_entree))
     sorties = torch.zeros((n, shape_entree[1]))
     for i in range(n):
-        sortie = courbe_conso_aleatoire()
-        sorties[i] =
-        entrees[i] = net(sorties[i])
+        sorties[i][:] = torch.tensor(courbe_conso_aleatoire())
+        entrees[i] = torch.tensor(run_reseau(sorties[i]))
+
     dataset = torch.utils.TensorDataSet(entrees, sorties)
     length_test = int(n*val_split_ratio)
     length_train = n - length_test
@@ -98,7 +130,12 @@ def courbe_conso_aleatoire():
     conso_utilisateur_semaine = dist_moy_francais * 7 * conso_voiture_1km / eff_chargeur
 
 
-    random_numbers = numpy.random.uniform(low=-3700, high=3700, size=335)
-    print(np.sum(random_numbers))
+    courbe_conso = np.random.uniform(low=-3700, high=3700, size=336)
+    integer = 0
+    for i in range(335):
+        integer += (courbe_conso[i] + courbe_conso[i + 1]) * 0.5 / 2  # time step (dt) vaut une demi heure soit 0.5h
+    courbe_conso = conso_utilisateur_semaine*courbe_conso/integer
     return courbe_conso
- courbe_conso_aleatoire()
+
+
+create_dataset(10)

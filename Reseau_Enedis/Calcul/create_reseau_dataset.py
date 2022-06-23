@@ -2,12 +2,9 @@ import numpy as np
 import pandas as pd
 import scipy.interpolate as interp
 import pandapower as pp
-from pandapower.timeseries.data_sources.frame_data import DFData
-import matplotlib.pyplot as plt
-# from Scenar_Grid import scenar_grid
 
 
-def profil_conso(scenario, **kwargs):
+def profil_conso(scenario, profil=None):
     if scenario == 'consommateur':
         # Consommation d'une renault Zoe dernière génération, la voiture la plus vendue en France
         conso_voiture_1km = 17.55*1000/100
@@ -74,10 +71,8 @@ def profil_conso(scenario, **kwargs):
         conso = l_prix_elec - integer / 335 * 2
         prix_max = conso.min()
         courbe_charge = -conso*cap_bat_wh*0.05/prix_max
-    elif scenario == 'Grid':
-        courbe_charge = scenar_grid(**kwargs)
-    else:
-        raise NotImplementedError()
+    elif scenario == 'grid':
+        courbe_charge = profil
     return courbe_charge
 
 
@@ -155,7 +150,7 @@ def create_troyes_net(l_pv_gen, l_ev):
     return net_noes_pres_troyes
 
 
-def create_data_source(scenario, **kwargs):
+def create_data_source(scenario, profil):
     """Pour obtenir la consommation d'un foyer moyen français vivant en Occitanie, on extrait des dataset le nombre 
     de points de soutirage ainsi que ceux d'injection (PV) cela permet d'avoir la courbe moyenne pour 1 seul 
     foyer/poste photovoltaïque :"""
@@ -163,14 +158,18 @@ def create_data_source(scenario, **kwargs):
     nb_point_injection_occ = 76688
 
     # Import des données de consommation
-    df_prod = pd.read_csv("C:/Users/Thiba/OneDrive/Documents/2021_2022/TAF/ARPE/Data_PV_Wind/Prod Occitanie ete.csv",
+    #df_prod = pd.read_csv("C:/Users/Thiba/OneDrive/Documents/2021_2022/TAF/ARPE/Data_PV_Wind/Prod Occitanie ete.csv",
+    #                      sep=';', encoding="latin-1")
+    df_prod = pd.read_csv("C:/Users/Ralph/Documents/Perso/2021/ARPE/Data/Prod_Occitanie_ete.csv",
                           sep=';', encoding="latin-1")
     sol = df_prod['Total énergie injectée (Wh)'][df_prod['Filière de production'] == 'F5 : Solaire']
     solaire = np.nan_to_num(sol)
     # Import des données de consommation inférieure à 36 kVA + traitement 
     # (on regroupe les 14 profils différents par horodate)
-    df_conso = pd.read_csv("C:/Users/Thiba/OneDrive/Documents/2021_2022/TAF/ARPE/Data_PV_Wind/conso inf36 Occ ete.csv",
-                           sep=';', encoding="latin-1")
+    #df_conso = pd.read_csv("C:/Users/Thiba/OneDrive/Documents/2021_2022/TAF/ARPE/Data_PV_Wind/conso inf36 Occ ete.csv",
+    #                       sep=';', encoding="latin-1")
+    df_conso = pd.read_csv("C:/Users/Ralph/Documents/Perso/2021/ARPE/Data/conso_inf36_Occ_ete.csv",
+                           sep = ';', encoding = "latin-1")
     date = df_conso['Horodate']
     # Liste des horodates différentes
     l_horodate = [date[1]]
@@ -198,7 +197,6 @@ def create_data_source(scenario, **kwargs):
         profiles['loadp_%s' % i] = conso*conso_mwh[i]/(10**6*nb_point_soutirage_occ*conso_moy_mwh)
     # Profil de production # solaire
     profiles['sgenp'] = solaire/nb_point_injection_occ/10**6 
-    profiles['Load_EV'] = profil_conso(scenario, **kwargs)/10**6
+    profiles['Load_EV'] = profil_conso(scenario, profil)/10**6
     df = pd.DataFrame(profiles)
-    #ds = DFData(df)
     return df
