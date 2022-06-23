@@ -6,7 +6,7 @@ from create_reseau_dataset import create_troyes_net, create_data_source
 from pandapower.timeseries.data_sources.frame_data import DFData
 import pandas as pd
 import matplotlib.pyplot as plt
-
+import torch
 
 
 def check_lin(lamb):
@@ -61,3 +61,44 @@ for i, lamb in enumerate(lambs):
 
 plt.plot(lambs, ords)
 plt.show()
+
+def create_dataset(n, shape_entree=(35, 335), val_split_ratio=.1):
+    entrees = torch.zeros((n, *shape_entree))
+    sorties = torch.zeros((n, shape_entree[1]))
+    for i in range(n):
+        sortie = courbe_conso_aleatoire()
+        sorties[i] =
+        entrees[i] = net(sorties[i])
+    dataset = torch.utils.TensorDataSet(entrees, sorties)
+    length_test = int(n*val_split_ratio)
+    length_train = n - length_test
+    train, test = torch.utils.data.random_split(dataset, [length_train, length_test])
+    return train, test
+
+
+def courbe_conso_aleatoire():
+
+    #  Cette fonction permet de générer une courbe de charge de véhicule électrique aléatoire respectant certaines
+    #  règles :
+    #  - La charge ne peut pas être supérieure à 3.7KW (taille d'un chargeur type)
+    #  - L'énergie consommée (intégrale de la courbe) sur une semaine doit correspondre à la consommation
+    #  d'un utilisateur moyen (à savoir conso_utilisateur_semaine)
+
+    #  Le véhicule peut être utilisé en journée, on cherche un optimal de consommation
+    #  Le pas de temps est la demi-heure
+
+
+    # Consommation d'une renault Zoe dernière génération, la voiture la plus vendue en France
+    conso_voiture_1km = 17.55 * 1000 / 100
+    # Distance moyenne parcourue par un Français en 2021
+    dist_moy_francais = 42
+    # Efficacité du chargeur, elle est en général entre 90% et 95%
+    eff_chargeur = 0.90
+    # Consommation électrique d'un Français moyen sur une semaine
+    conso_utilisateur_semaine = dist_moy_francais * 7 * conso_voiture_1km / eff_chargeur
+
+
+    random_numbers = numpy.random.uniform(low=-3700, high=3700, size=335)
+    print(np.sum(random_numbers))
+    return courbe_conso
+ courbe_conso_aleatoire()
