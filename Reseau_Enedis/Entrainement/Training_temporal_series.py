@@ -9,10 +9,11 @@ from pandapower.timeseries import DFData
 from pandapower.timeseries import OutputWriter
 from pandapower.timeseries.run_time_series import run_timeseries
 from pandapower.control import ConstControl
+from numba import jit
 
-
+@jit
 def timeseries_Noes(output_dir):
-    L_PV_gen = []  # Liste à remplir avec les bus (donc logements) arborant des panneaux solaires
+    L_PV_gen = np.array([],dtype='float')  # Liste à remplir avec les bus (donc logements) arborant des panneaux solaires
     # 1. create test net
     net = create_Troyes_net(L_PV_gen)
 
@@ -26,7 +27,7 @@ def timeseries_Noes(output_dir):
     time_steps = range(0, n_timesteps)
 
     # 4. the output writer with the desired results to be stored to files.
-    #ow = create_output_writer(net, time_steps, output_dir=output_dir)
+    ow = create_output_writer(net, time_steps, output_dir=output_dir)
 
     # 5. the main time series function
     run_timeseries(net,time_steps)
@@ -41,31 +42,30 @@ def create_Troyes_net(L_PV_gen):
 
 
     # Nombre d'habitations par bus, on en déduis ensuite la puissance de raccordement ()
-    Nb_hous = [14, 26, 10, 16, 15, 15, 1, 1, 15, 15, 1, 1, 1, 15, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    Nb_hous = np.array([14, 26, 10, 16, 15, 15, 1, 1, 15, 15, 1, 1, 1, 15, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],dtype='float')
 
     # Création des positions des bus d 'habitation (avec une remise à l'origine)
-    X_pos_tempo = [251, 343, 254, 231, 386, 412, 407, 309, 400, 295, 259, 245, 219, 233, 411, 456, 464, 436, 420, 377, 291, 269, 256, 234, 221, 193]
-    Y_pos_tempo = [498, 512, 518, 545, 461, 483, 518, 436, 472, 408, 421, 433, 463, 446, 546, 578, 583, 562, 552, 525, 536, 563, 575, 483, 479, 468]
+    X_pos_tempo = np.array([251, 343, 254, 231, 386, 412, 407, 309, 400, 295, 259, 245, 219, 233, 411, 456, 464, 436, 420, 377, 291, 269, 256, 234, 221, 193],dtype='float')
+    Y_pos_tempo = np.array([498, 512, 518, 545, 461, 483, 518, 436, 472, 408, 421, 433, 463, 446, 546, 578, 583, 562, 552, 525, 536, 563, 575, 483, 479, 468],dtype='float')
     xmin = min(X_pos_tempo)
     ymin = min(Y_pos_tempo)
-    X_pos = [x - xmin for x in X_pos_tempo]
-    Y_pos = [y - ymin for y in Y_pos_tempo]
+    X_pos = np.array([x - xmin for x in X_pos_tempo],dtype='float')
+    Y_pos = np.array([y - ymin for y in Y_pos_tempo],dtype='float')
 
     # Création des positions des bus des embranchements
-    X_pos_emb = [393 - xmin, 320 - xmin, 211 - xmin, 293 - xmin]
-    Y_pos_emb = [536 - ymin, 504 - ymin, 481 - ymin, 500 - ymin]
+    X_pos_emb = np.array([393 - xmin, 320 - xmin, 211 - xmin, 293 - xmin],dtype='float')
+    Y_pos_emb = np.array([536 - ymin, 504 - ymin, 481 - ymin, 500 - ymin],dtype='float')
 
     # Création des dataframe des lignes
     From_bus = ['Bus 16', 'Bus 15', 'Bus 17', 'Bus 18', 'Bus 14', 'Croisement 0', 'Bus 6', 'Bus 5', 'Bus 8','Croisement 0', 'Bus 19', 'Bus 1', 'Croisement 1', 'Bus 20', 'Bus 21', 'Croisement 1','Poste Source BT', 'Bus 9', 'Bus 10', 'Bus 11', 'Bus 13', 'Croisement 2', 'Croisement 2', 'Bus 24','Bus 23', 'Poste Source BT', 'Croisement 3', 'Croisement 3', 'Bus 2', 'Poste Source BT']
     To_bus = ['Bus 15', 'Bus 17', 'Bus 18', 'Bus 14', 'Croisement 0', 'Bus 6', 'Bus 5', 'Bus 8', 'Bus 4', 'Bus 19','Bus 1', 'Croisement 1', 'Bus 20', 'Bus 21', 'Bus 22', 'Poste Source BT', 'Bus 9', 'Bus 10', 'Bus 11','Bus 13', 'Bus 12', 'Bus 25', 'Bus 24', 'Bus 23', 'Poste Source BT', 'Croisement 3', 'Bus 0', 'Bus 2','Bus 3', 'Bus 7']
-    length = [10, 23, 15, 12, 20, 20, 50, 18, 20, 20, 40, 25, 42, 35, 15, 85, 52, 48, 14, 30, 13, 22, 2, 25, 124, 70, 35, 47, 37, 10]
+    length = np.array([10, 23, 15, 12, 20, 20, 50, 18, 20, 20, 40, 25, 42, 35, 15, 85, 52, 48, 14, 30, 13, 22, 2, 25, 124, 70, 35, 47, 37, 10],dtype='float') 
     ############################################
     ############################################
     ############################################
     #Création du réseau en lui même
     net_noes_pres_troyes = pp.create_empty_network()
-    pp.set_user_pf_options(net_noes_pres_troyes, init_vm_pu="flat", init_va_degree="dc",
-                           calculate_voltage_angles=True)
+    #pp.set_user_pf_options(net_noes_pres_troyes, init_vm_pu="flat", init_va_degree="dc",calculate_voltage_angles=True)
     # Création du Poste Source HT et du BT
     pp.create_bus(net_noes_pres_troyes, vn_kv=0.4, geodata=[313 - xmin, 436 - ymin], name='Poste Source BT')
     pp.create_bus(net_noes_pres_troyes, vn_kv=20, geodata=[313 - xmin, 436 - ymin], name='Poste Source HT')
@@ -134,18 +134,18 @@ def create_data_source():
     #Cependant les consommation des maisons ne sont pas les mêmes, seuls les profils sont les mêmes, il faut donc normer par les consommations  et en fabriquer une par type de bus
     Conso_moy_mwh=4.76 #Consommation moyenne d'un client Enedis en résidence
     # Liste des consommations annuelles des bus
-    Conso_mwh = [19, 52, 13, 23, 22.5, 22.5, 1.5, 94, 22.5, 22.5, 1.4, 1.2, 1.3, 22.8, 1.5, 1.5, 1.5, 1.3, 1.5, 1.5, 1.4, 1.5, 1.5, 1.5, 1.2, 1.1]
+    Conso_mwh = np.array([19, 52, 13, 23, 22.5, 22.5, 1.5, 94, 22.5, 22.5, 1.4, 1.2, 1.3, 22.8, 1.5, 1.5, 1.5, 1.3, 1.5, 1.5, 1.4, 1.5, 1.5, 1.5, 1.2, 1.1],dtype=float)
     # Nombre d'habitations par bus
-    Nb_hous = [14, 26, 10, 16, 15, 15, 1, 1, 15, 15, 1, 1, 1, 15, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    Nb_hous = np.array([14, 26, 10, 16, 15, 15, 1, 1, 15, 15, 1, 1, 1, 15, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],dtype=float)
 
 
 
     #Création d'un second dataframe avec le bon format pour utiliser les séries temporelles
     profiles = pd.DataFrame()
     for i in range (26):
-        profiles['loadp_%s'%i] = np.array([x*Conso_mwh[i]*Nb_hous[i]/(10**6*Nb_point_soutirage_OCC*Conso_moy_mwh) for x in Conso]) # Un profil de consommation par bus car chaque bus n'a pas forcément le même nombre d'habitation ni la même consommation, et cette dernière n'est même pas la même que la moyenne natianale
+        profiles['loadp_%s'%i] = np.array([x*Conso_mwh[i]*Nb_hous[i]/(10**6*Nb_point_soutirage_OCC*Conso_moy_mwh) for x in Conso],dtype=float) # Un profil de consommation par bus car chaque bus n'a pas forcément le même nombre d'habitation ni la même consommation, et cette dernière n'est même pas la même que la moyenne natianale
 
-    profiles['sgenp'] = np.array([x/Nb_point_injection_OCC/10**6 for x in Solaire]) # profil de production solaire
+    profiles['sgenp'] = np.array([x/Nb_point_injection_OCC/10**6 for x in Solaire],dtype=float) # profil de production solaire
 
     ds = DFData(profiles)
 
@@ -155,10 +155,9 @@ def create_controllers(net, ds, L_PV_gen):
 
     for i in range(26):
         bus_idx = pp.get_element_index(net, element="bus", name="Bus %s" % i)
-        ConstControl(net, element='load', variable='p_mw', element_index=bus_idx, data_source=ds, profile_name=["loadp_%s" %i])
-    for Pv in L_PV_gen:
-        bus_idx = pp.get_element_index(net_noes_pres_troyes, element="bus", name="Bus %s" % str(Pv))
-        ConstControl(net, element='sgen', variable='p_mw', element_index=bus_idx, data_source=ds, profile_name=["sgenp"])
+        ConstControl(net, element='load', variable='p_mw', element_index=bus_idx, data_source=ds, profile_name="loadp_%s" %i)
+
+    ConstControl(net, element='sgen', variable='p_mw', element_index=net.sgen.index, data_source=ds, profile_name=["sgenp"])
 
 def create_output_writer(net, time_steps, output_dir):
     ow = OutputWriter(net, time_steps, output_path=output_dir, output_file_type=".xlsx", log_variables=list())
@@ -173,6 +172,7 @@ output_dir = os.path.join("/", "time_series_example")
 print("Results can be found in your local temp folder: {}".format(output_dir))
 if not os.path.exists(output_dir):
     os.mkdir(output_dir)
+
 timeseries_Noes(output_dir)
 
 ppp.simple_plotly(net)
